@@ -1,0 +1,279 @@
+>>>>>>>>>>>
+struct linger：
+	//l_onoff = 0; l_linger忽略		close()立刻返回，底层会将未发送完的数据发送完成后再释放资源，即优雅退出
+	//l_onoff != 0; l_linger > 0			close()立刻返回，但不会发送未发送完成的数据
+	//l_onoff != 0; l_linger > 0			close()不会立刻返回，内核会延迟一段时间
+		
+	int ttxSetSocketLinger(int nSocket, int nOnoff, int nLinger)
+	{
+		struct linger zeroLinger = {nOnoff,  nLinger};
+		setsockopt(nSocket, SOL_SOCKET, SO_LINGER, (const char *)&zeroLinger, sizeof(linger));
+		return TTX_S_OK;
+	}
+	
+>>>>>>>>>>>	
+mktime:
+	time_t mktime(struct tm * timeptr);
+	标准库函数中 time.h 中的函数。
+	作用是，将时间转换为自1970年1月1日以来持续时间的秒数，发生错误时返回-1。
+	
+>>>>>>>>>>>
+strdup:
+	extern char *strdup(char *s);
+	功 能: 将串拷贝到新建的位置处
+	strdup()在内部调用了malloc()为变量分配内存，不需要使用返回的字符串时，需要用free()释放相应的内存空间，否则会造成内存泄漏。
+
+>>>>>>>>>>>	
+sigemptyset，sigaddset,sigprocmask用法:
+	{
+		sigset_t s,p; //设置两个信号集
+		sigemptyset(&s); //将s的信号集清空
+		sigaddset(&s,SIGINT); //将SIGINT加入到s的信号集合中,即改位设置为1,阻塞;
+		sigprocmask(SIG_BLOCK,&s,NULL); //SIG_BLOCK作用:将s与set集合相或;NULL表示不关心信号set集合的原有内容;
+		
+		sigpending(&p);//读取当前进程的未决信号集,通过set参数传出,调用成功返回0,出错返回-1;
+		
+	} 
+
+	函数声明:
+	{
+		int sigemptyset(sigset_t *set);//函数初始化信号集合set,将set设置为空;
+		int sigfillset(sigset_t *set);
+		int sigaddset(sigset_t *set,int signo);//将signo加入到信号集合中
+		int sigdelset(sigset_t *set,int signo);//将信号从信号集合中删除;
+		int sigismember(const sigset_t *set,int signo);//查询信号是否在集合中; 
+	}
+
+	{
+		int sigaction(int signum,cosnt struct sigaction *act,struct sigaction *oldact);
+		
+		struct sigaction{
+			void (*sa_handel)(int); //早期的捕捉函数
+			void (*sa_sigaction)(int,siginfo_t *,void *); //新添加的捕捉函数
+			sigset_t sa_mask; //设置阻塞其他信号,sa_mask|进程阻塞信号集.退出捕捉函数后,还原原有阻塞信号集;
+			int sa_flags; //SA_SIGINFO或0
+			void (*sa_restores)(void);
+		};
+	}
+	
+>>>>>>>>>>>	
+2560*720p是1280*720的全宽格式;3840*1080p是1920*1080p的全宽格式;	
+	
+>>>>>>>>>>>	
+修改/etc/profile下的最后三行为app目录下makefile下的对应三行;
+source /etc/profile 重启配置;
+执行qmake 在mainApp/build下 生成自己的 或者qmake ../mainApp.pro
+解决各种.a库失败问题	
+
+>>>>>>>>>>>	
+解决qt ip地址出现1显示成100问题;增加前导0;	
+sscanf(m_centerServerIP,"%03d.%03d.%03d.%03d",&m_ipNum.para0 ,&m_ipNum.para1,&m_ipNum.para2,&m_ipNum.para3);
+
+QString centerIp = QString("%1.%2.%3.%4").arg(m_ipNum.para0,3,10,QLatin1Char('0'))
+									   .arg(m_ipNum.para1,3,10,QLatin1Char('0'))
+									   .arg(m_ipNum.para2,3,10,QLatin1Char('0'))
+									   .arg(m_ipNum.para3,3,10,QLatin1Char('0'));	
+
+>>>>>>>>>>>	
+从字符串中提取包含的部分;	
+QString::section(QChar sep, int start, int end,flag)
+QString str;
+QString csv = "forename,middlename,surname,phone";
+QString path = "/usr/local/bin/myapp"; // First field is empty
+QString::SectionFlag flag = QString::SectionSkipEmpty;
+
+str = csv.section(',', 2, 2);   // str == "surname"
+str = path.section('/', 3, 4);  // str == "bin/myapp"
+str = path.section('/', 3, 3, flag); // str == "myapp"	
+str = csv.section(',', -3, -2);  // str == "middlename,surname"
+str = path.section('/', -1); // str == "myapp"	
+当开始和结束为负时,从右开始,最右面是-1；
+	
+>>>>>>>>>>>
+c++中的iterator->second意思;
+std::map<x,y>实际存储了一串std::pair<const X,Y>
+{
+	srd::map<std::string,int> m=/*fill it*/
+	auto it=m.begin();
+}
+这里,如果使用*it,那么将得到map第一个元素的std::pair;
+现在你可以接收std::pair的两个元素;
+(*it).first会得到key;
+(*it).second会得到value;
+等同于it->first和it->second;
+
+>>>>>>>>>>>
+裸设备和文件系统的比较:	
+	裸设备(RAW)：(也叫原始分区),是一种没有经过格式化,不被Unix通过文件系统来读取的特殊字符设备;它由应用程序对它进行读写操作.
+	不经过文件缓冲;
+	
+	使用裸设备的好处:
+		裸设备没有文件系统的管理,对于Unix维护文件系统的开销也就没有了,如不再维护I-node,空闲块等;
+		裸设备操作的是扇区,
+	
+	使用文件系统好处:
+		方便管理,还可以最大的调度IO资源;有自己的读写机制或自己的缓存机制;
+	
+>>>>>>>>>>>
+dd命令：
+	参数：
+	1> if=文件名   //输入文件名,缺省为标准输入,即指定源文件;
+	2> of=文件名   //输出文件名,缺省为标准输出,即指定目的文件;
+	3> ibs=bytes   //一次读入bytes个字节,即指定一个块大小为bytes个字节;
+	   obs=bytes   //一次输出bytes个字节,即指定一个块大小为bytes个字节;
+	   bs=bytes    //同时设置读入/输出的块大小为bytes个字节;
+	4> count=blocks//仅拷贝blocks个块,块大小等于ibs指定的字节数;
+	
+/dev/null 和 /dev/zero区别:
+	/dev/null 可看做黑洞,等价于一个只写文件,所有写入它的内容都会永远消失,读取什么都都不到;通吃,不会撑着;
+	/dev/zero 是一个输入设备,可用于初始化文件,它无穷提供0;
+	如:if=/dev/zero of=./test.txt bs=1k count=1
+
+>>>>>>>>>>>	
+memchr原型：void *memchr(const void *buf,int ch,size_t count);
+功能:从buf所指内存区域的前count个字节查找字符ch;
+返回值:查找成功,返回指向字符ch的指针,否则返回NULL;
+
+>>>>>>>>>>>
+linux/unix提示了使用dlopen和dlsym方法动态加载库和调用函数;
+	dlopen打开一个库,获取句柄;
+	dlsym在打开的库中查找符号的值;
+	dlclose关闭句柄;
+	dlerror返回一个描述最后一次调用dlopen,dlsym,dlclose的错误信息字符串;
+	示例：
+	//动态库路径
+    char *dylib_path = "/usr/lib/libSystem.dylib";
+    
+    //打开动态库
+    void *handle = dlopen(dylib_path, RTLD_GLOBAL | RTLD_NOW);
+    if (handle == NULL) {
+        //打开动态库出错
+        fprintf(stderr, "%s\n", dlerror());
+    } else {
+        
+        //获取 printf 地址
+        printf_func_pointer printf_func = dlsym(handle, "printf");
+        
+        //地址获取成功则调用
+        if (printf_func) {
+            int num = 100;
+            printf_func("Hello exchen.net %d\n", num);
+            printf_func("printf function address 0x%lx\n", printf_func);
+        }
+        
+        dlclose(handle); //关闭句柄
+    }
+
+>>>>>>>>>>>
+Q_PROPERTY属性:
+	Q_PROPERTY(type name
+           (READ getFunction [WRITE setFunction] |
+            MEMBER memberName [(READ getFunction | WRITE setFunction)])
+           [RESET resetFunction]
+           [NOTIFY notifySignal]
+           [REVISION int]
+           [DESIGNABLE bool]
+           [SCRIPTABLE bool]
+           [STORED bool]
+           [USER bool]
+           [CONSTANT]
+           [FINAL]
+           [REQUIRED])
+	1> 必须有一个read函数,用来读取属性值,因此用const限定,返回值必须是属性类型或属性类型的引用或指针;
+	2> 有一个可选的write函数,它用来设置属性值，它的返回值必须为void型，而起必须要含有一个参数。
+	3> reset函数把property设置为默认状态;
+	4> NOTIFY 可选,若定义,在值发生改变时自动发射信号;
+	5> STODE属性表示一直存在；
+	6> user属性,是否可以被用户所编辑;
+	7> const不可修改,不能与WRITE或NOTIFY同时出现;
+	8> FINAL表明该属性不会被派生类中从写;
+	
+>>>>>>>>>>>
+关键字 noexcept,告诉编译器函数中不会发生异常,有利于编译器对程序做更多优化;
+
+>>>>>>>>>>>
+	class QMessageLogger;
+	#define qWarning QMessageLogger(QT_MESSAGELOG_FILE, QT_MESSAGELOG_LINE, QT_MESSAGELOG_FUNC).warning
+
+>>>>>>>>>>>
+malloc和calloc区别:
+1> 参数区别:
+	void *malloc(size_t size);//一个参数,为要分配的内存空间的大小;
+	void *calloc(size_t numElements,size_t sizeOfElement);//分别为元素个数和每个元素的大小,他们乘积为要分配的内存空间;
+
+2> 初始化内存空间上区别：
+	malloc不能初始化所分配的内存空间,里面数据是随机值;
+	calloc分配完后自动初始化为0;
+	
+>>>>>>>>>>>>>>
+异或有专门的操作符^，比如int a,b,c,d;c=a^b;，则表示c是a与b异或的结果。C中虽然没有同或操作符，但由逻辑关系知同或是异或的非，
+所以d=!(a^b);，那么d就是a与b同或的结果。
+
+>>>>>>>>>>>>>>
+strcpy和strdup区别
+1> extern char *strdup(char *); 将串拷贝到新建位置处;
+strdup不是标准的c函数,strdup()在内部调用了malloc()为变量分配内存,不需要使用返回的字符串,需要free()释放相应的内存空间.否则造成内存泄露;
+用法:
+	char *str = "test for wbk";
+	char *dest ;
+	d = strdup(s);
+说明：strdup可以直接把要复制的内容复制给没有初始化的指针；因为他会自动分配空间给目的指针;
+	  用完要记得free()，否则内存泄露;
+	  
+2> char *strcpy(char *dest,const char *src);
+功能：把src地址开始且含有null结束符的字符串复制给以dest开始的地址空间;
+
+>>>>>>>>>>>>>>
+void rewind(FILE *stream);
+设置文件位置为给定流的文件的开头;
+
+
+
+
+AVI文件格式 (结构)
+1. RIFF块
+	1> "RIFF"表示字符串
+	2> RIFF文件大小(数据块的大小)
+	3> 形式类型或列表类型"AVI","WAVE"
+	
+	RIFF文件的实际数据中，使用了列表（List）和块（Chunk）的形式来组织。
+	列表可以嵌套列表和块;
+
+	整个RIFF文件可以看成一个数据库,其数据块ID为RIFF,称为RIFF块;
+	一个RIFF文件只允许存在一个RIFF块;RIFF块中包含了一系列的子块,其中有一种子块的ID为:"LIST",称为LIST块;
+	
+	LIST块可以在包含一系列的子块;但是除了LIST块外的其他所有子块都不能在包含子块;
+	RIFF和LIST块分别比普通的数据块多了一个被称为形式类型（Form Type）或者列表类型（List Type）的数据域。
+
+	RIFF(4byte) fileSize(4byte) fileType(4byte) data... 
+	注:RIFF文件大小不包含"RIFF"域和"文件大小"域本身;故换句话说 fileSize=sizeof(data)+sizeof(fileType)
+	所有最终总大小=fileSize+8
+	
+2. LIST块 
+	大小计算同上,但是注意嵌套;
+
+
+3.Chunk块
+	1> Chunk ID 表示块类型四字符码;
+	2> Chunk块大小 记录整个块的大小;
+	3> Chunk数据;
+
+	Chunk块大小=实际的块数据长度，而不包括ckID域和ckSize域本身的大小
+
+
+
+
+
+
+
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
