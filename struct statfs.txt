@@ -1,0 +1,42 @@
+#include <sys/vfs.h>    /* 或者 <sys/statfs.h> */
+
+int statfs(const char *path, struct statfs *buf); 
+int fstatfs(int fd, struct statfs *buf);
+
+参数：   
+path: 位于需要查询信息的文件系统的文件路径名(不是设备名，是挂载点名称)。     
+fd： 位于需要查询信息的文件系统的文件描述词。 
+buf：以下结构体的指针变量，用于储存文件系统相关的信息
+
+struct statfs 
+{ 
+   long    f_type;     /* 文件系统类型  */ 
+   long    f_bsize;    /* 经过优化的传输块大小  */ 
+   long    f_blocks;   /* 文件系统数据块总数 */ 
+   long    f_bfree;    /* 可用块数 */ 
+   long    f_bavail;   /* 非超级用户可获取的块数 */ 
+   long    f_files;    /* 文件结点总数 */ 
+   long    f_ffree;    /* 可用文件结点数 */ 
+   fsid_t  f_fsid;     /* 文件系统标识 */ 
+   long    f_namelen;  /* 文件名的最大长度 */ 
+}; 
+
+返回说明：   
+成功执行时，返回0。失败返回-1，errno被设为以下的某个值   
+
+
+示例
+{
+	struct statfs stfs;
+	int rc;
+
+	*total_size = 0;
+	*free_size = 0;
+	
+	rc = statfs(mountpoint, &stfs);
+	if ( rc >= 0 )
+	{
+		*total_size = (u64)stfs.f_blocks * stfs.f_bsize;
+		*free_size = (u64)stfs.f_bavail * stfs.f_bsize;
+	}
+}
